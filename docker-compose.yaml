@@ -1,0 +1,46 @@
+services:
+  be:
+    container_name: be
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    volumes:
+      - ./app:/app
+    depends_on:
+      - db
+    networks:
+      - my_network
+    command: ["tail", "-f", "/dev/null"]
+
+  db:
+    container_name: db
+    image: postgres
+    environment:
+      - POSTGRES_USER=your_username
+      - POSTGRES_PASSWORD=your_password
+      - POSTGRES_DB=your_database_name
+    ports:
+      - 5432:5432
+    volumes:
+      - data:/var/lib/postgresql/data
+    networks:
+      - my_network
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
+    networks:
+      - my_network
+
+networks:
+  my_network:
+  external_network:
+    external: true
+
+volumes:
+  data:
