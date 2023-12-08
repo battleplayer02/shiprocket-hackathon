@@ -13,15 +13,56 @@ services:
     networks:
       - my_network
 
-  all-in-one:
-    container_name: all-in-one
-    build:
-      context: .
-      dockerfile: docker_files/Dockerfile
-    command: tail -f /dev/null
+  kafka:
+    image: obsidiandynamics/kafka
+    restart: "no"
+    ports:
+      - "2181:2181"
+      - "9092:9092"
+    environment:
+      KAFKA_LISTENERS: "INTERNAL://:29092,EXTERNAL://:9092"
+      KAFKA_ADVERTISED_LISTENERS: "INTERNAL://kafka:29092,EXTERNAL://localhost:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_ZOOKEEPER_SESSION_TIMEOUT: "6000"
+      KAFKA_RESTART_ATTEMPTS: "10"
+      KAFKA_RESTART_DELAY: "5"
+      ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL: "0"
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    platform: linux/amd64
+    restart: "no"
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: "kafka:29092"
+    depends_on:
+      - "kafka"
+
+  nodejs:
+    container_name: nodejs
+    image: node:latest
+    working_dir: /app
+    volumes:
+      - ./node:/app
+    ports:
+      - 3000:3000
     networks:
       - my_network
+    depends_on:
+      - database
+      - kafka
 
+
+  laravel:
+    image: docker.io/bitnami/laravel:10
+    ports:
+      - '8000:8000'
+    volumes:
+      - './laravel:/app'
+    depends_on:
+      - database
 
 networks:
   my_network:
